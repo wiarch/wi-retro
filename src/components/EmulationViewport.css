@@ -1,0 +1,143 @@
+.emu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.emu-viewport {
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 820px);
+  max-height: 92vh;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #12141a;
+  border: 1px solid #2e3140;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+}
+
+.emu-viewport__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #252830;
+  background: #0f1015;
+}
+
+.emu-viewport__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.emu-viewport__meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: #6b7288;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.emu-viewport__stop {
+  flex-shrink: 0;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  transition: background 200ms, border-color 200ms;
+}
+
+.emu-viewport__stop:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+}
+
+.emu-viewport__stop:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emu-viewport__screen {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #000;
+  min-height: 200px;
+}
+
+.emu-viewport__canvas {
+  display: block;
+  max-width: 100%;
+  max-height: calc(92vh - 120px);
+  width: auto;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid #252830;
+  border-radius: 4px;
+}
+
+.emu-viewport__waiting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #9ca3b8;
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.emu-viewport__pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a855f7;
+  box-shadow: 0 0 16px #a855f7;
+  animation: emu-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes emu-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.detail__play--active {
+  background: linear-gradient(135deg, #6d28d9, #9333ea);
+}
+
+.detail__play:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.game-card--zip {
+  opacity: 0.65;
+}
+
+.game-card--zip .game-card__title::after {
+  content: " (.zip)";
+  font-size: 0.68rem;
+  color: #6b7288;
+}

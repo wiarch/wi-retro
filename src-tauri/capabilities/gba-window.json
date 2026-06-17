@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "gba-window",
+  "description": "Ventana nativa de emulación GBA",
+  "windows": ["gba-window"],
+  "permissions": [
+    "core:default"
+  ]
+}

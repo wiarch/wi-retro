@@ -1,11 +1,16 @@
 pub mod commands;
 pub mod gba;
-pub mod launcher;
+pub mod gba_window;
+pub mod libretro;
 pub mod models;
 pub mod persistence;
+pub mod rom;
 pub mod scanner;
 pub mod state;
 
+use std::sync::Arc;
+
+use libretro::SessionManager;
 use state::AppState;
 use tauri::Manager;
 
@@ -13,7 +18,11 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(Arc::new(SessionManager::default()))
         .setup(|app| {
+            let _ = libretro::video::VideoFrameState::global();
+            libretro::video::attach_app(app.handle().clone());
+
             let app_data = app
                 .path()
                 .app_data_dir()
@@ -28,6 +37,9 @@ pub fn run() {
             commands::scan_gba_roms,
             commands::get_games,
             commands::launch_game,
+            commands::stop_game,
+            commands::set_joypad_button,
+            commands::clear_joypad,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

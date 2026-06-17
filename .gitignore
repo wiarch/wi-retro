@@ -28,3 +28,8 @@ src-tauri/gen/
 # Local data
 data/
 *.db
+
+# Libretro cores (binarios descargados)
+src-tauri/cores/*.so
+src-tauri/cores/*.dll
+src-tauri/cores/*.dylib

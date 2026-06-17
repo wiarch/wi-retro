@@ -13,16 +13,39 @@ crate-type = ["lib", "cdylib", "staticlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# --- Tauri / UI ---
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+
+# --- Libretro / FFI dinámico ---
+# Carga en runtime del core mGBA (.so / .dll) vía dlopen/LoadLibrary.
+libloading = "0.8"
+
+# --- Estado compartido y concurrencia ---
+# Mutex/RwLock de bajo overhead para VideoFrameState, SessionManager y biblioteca.
+# El bucle retro_run vive en std::thread (no bloquea el runtime async de Tauri).
+parking_lot = "0.12"
+# Canal lock-free para entregar frames del hilo Libretro al pipeline de UI (fase siguiente).
+crossbeam-channel = "0.5"
+base64 = "0.22"
+
+# --- Serialización IPC (frontend ↔ comandos Tauri) ---
+# `derive` basta para Game, LaunchResult, etc. No se requieren features extra (rc, alloc).
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# --- Indexación de biblioteca ---
 walkdir = "2"
 rayon = "1"
 blake3 = "1"
-parking_lot = "0.12"
+
+# --- Errores ---
 thiserror = "2"
-tokio = { version = "1", features = ["time"] }
+
+# Notas de dependencias evaluadas y descartadas:
+# - tokio: NO requerido como dep directa; Tauri 2 expone `tauri::async_runtime`
+#   (`spawn_blocking` en launch_game). El emulador corre en hilo OS dedicado.
+# - lazy_static / once_cell: NO requeridos; usamos `std::sync::OnceLock` en libretro/video.rs.
 
 [profile.release]
 codegen-units = 1

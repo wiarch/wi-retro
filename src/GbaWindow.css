@@ -1,0 +1,16 @@
+.gba-screen {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.gba-screen__canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  aspect-ratio: 3 / 2;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}

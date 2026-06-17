@@ -1,0 +1,3 @@
+import { LIBRETRO_FRAME_EVENT, LIBRETRO_STATUS_EVENT } from "@/types/emulation";
+
+export { LIBRETRO_FRAME_EVENT, LIBRETRO_STATUS_EVENT };

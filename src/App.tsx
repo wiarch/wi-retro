@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { homeDir, join } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { Game, LaunchResult } from "@/types/game";
+import { isPlayableGbaRom } from "@/lib/emulation-canvas";
+import { LIBRETRO_STATUS_EVENT } from "@/lib/emulation-events";
+import { getGames, launchGame, scanGbaRoms, stopGame } from "@/lib/tauri";
+import type { EmulationStatusPayload } from "@/types/emulation";
+import type { Game } from "@/types/game";
 import "./styles/app.css";
 
 const LIBRARY_PATH_KEY = "wi-retro-library-path";
@@ -20,6 +24,8 @@ export default function App() {
   const [libraryPath, setLibraryPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [launching, setLaunching] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [isEmulating, setIsEmulating] = useState(false);
   const [status, setStatus] = useState("Inicializando biblioteca…");
   const [isError, setIsError] = useState(false);
 
@@ -28,9 +34,7 @@ export default function App() {
     setIsError(false);
     setStatus("Escaneando ROMs GBA…");
     try {
-      const result = await invoke<Game[]>("scan_gba_roms", {
-        folderPath,
-      });
+      const result = await scanGbaRoms(folderPath);
       setGames(result);
       setSelected((prev) => {
         if (prev) {
@@ -63,7 +67,7 @@ export default function App() {
     }
 
     try {
-      const cached = await invoke<Game[]>("get_games");
+      const cached = await getGames();
       setGames(cached);
       setSelected(cached[0] ?? null);
       setStatus(
@@ -81,6 +85,29 @@ export default function App() {
   useEffect(() => {
     loadLibrary();
   }, [loadLibrary]);
+
+  useEffect(() => {
+    const unlisten = listen<EmulationStatusPayload>(
+      LIBRETRO_STATUS_EVENT,
+      (event) => {
+        const payload = event.payload;
+        if (payload.state === "stopped") {
+          setIsEmulating(false);
+        }
+        if (payload.state === "started") {
+          setIsEmulating(true);
+        }
+        if (payload.message) {
+          setStatus(payload.message);
+          setIsError(payload.state === "error");
+        }
+      },
+    );
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   const handlePickFolder = async () => {
     let defaultPath: string | undefined;
@@ -105,17 +132,42 @@ export default function App() {
   };
 
   const handleLaunch = async (game: Game) => {
+    if (!isPlayableGbaRom(game.rom_path)) {
+      setIsError(true);
+      setStatus("Solo archivos .gba — Libretro no abre .zip directamente");
+      return;
+    }
+
     setLaunching(true);
-    setStatus(`Lanzando ${game.title}…`);
+    setIsError(false);
+    setStatus(`Abriendo ventana GBA — ${game.title}…`);
+
     try {
-      const result = await invoke<LaunchResult>("launch_game", {
-        romPath: game.rom_path,
-      });
+      const result = await launchGame(game.rom_path);
+      setIsEmulating(true);
       setStatus(result.message);
     } catch (err: unknown) {
+      setIsError(true);
+      setIsEmulating(false);
       setStatus(err instanceof Error ? err.message : String(err));
     } finally {
       setLaunching(false);
+    }
+  };
+
+  const handleStop = async () => {
+    setStopping(true);
+    setIsError(false);
+    setStatus("Deteniendo emulación…");
+    try {
+      await stopGame();
+      setIsEmulating(false);
+      setStatus("Emulación detenida");
+    } catch (err: unknown) {
+      setIsError(true);
+      setStatus(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -125,15 +177,18 @@ export default function App() {
 
   const handleCardDoubleClick = (game: Game) => {
     setSelected(game);
-    handleLaunch(game);
+    if (!isEmulating) handleLaunch(game);
   };
+
+  const selectedPlayable =
+    selected !== null && isPlayableGbaRom(selected.rom_path);
 
   return (
     <div className="shell">
       <aside className="platforms">
         <header className="platforms__header">
           <h1 className="platforms__logo">wi-retro</h1>
-          <p className="platforms__tagline">LaunchBox · Libretro</p>
+          <p className="platforms__tagline">LaunchBox · Libretro FFI</p>
         </header>
 
         <nav className="platforms__list">
@@ -183,29 +238,34 @@ export default function App() {
             </div>
           )}
 
-          {games.map((game) => (
-            <article
-              key={game.id}
-              className={`game-card${selected?.id === game.id ? " game-card--selected" : ""}`}
-              onClick={() => handleCardClick(game)}
-              onDoubleClick={() => handleCardDoubleClick(game)}
-            >
-              <div className="game-card__cover">
-                {game.box_art ? (
-                  <img src={game.box_art} alt={game.title} />
-                ) : (
-                  <div className="game-card__placeholder">
-                    <span>{initials(game.title)}</span>
-                  </div>
-                )}
-                <div className="game-card__shine" />
-              </div>
-              <h3 className="game-card__title">{game.title}</h3>
-            </article>
-          ))}
+          {games.map((game) => {
+            const zip = !isPlayableGbaRom(game.rom_path);
+            return (
+              <article
+                key={game.id}
+                className={`game-card${selected?.id === game.id ? " game-card--selected" : ""}${zip ? " game-card--zip" : ""}`}
+                onClick={() => handleCardClick(game)}
+                onDoubleClick={() => handleCardDoubleClick(game)}
+              >
+                <div className="game-card__cover">
+                  {game.box_art ? (
+                    <img src={game.box_art} alt={game.title} />
+                  ) : (
+                    <div className="game-card__placeholder">
+                      <span>{initials(game.title)}</span>
+                    </div>
+                  )}
+                  <div className="game-card__shine" />
+                </div>
+                <h3 className="game-card__title">{game.title}</h3>
+              </article>
+            );
+          })}
         </div>
 
-        <footer className={`library__status${isError ? " library__status--error" : ""}`}>
+        <footer
+          className={`library__status${isError ? " library__status--error" : ""}`}
+        >
           {status}
         </footer>
       </main>
@@ -239,16 +299,42 @@ export default function App() {
                 <dt>Ruta ROM</dt>
                 <dd>{selected.rom_path}</dd>
               </div>
+              <div className="detail__row">
+                <dt>Motor</dt>
+                <dd>Libretro mGBA · ventana GBA</dd>
+              </div>
+              {isEmulating && (
+                <div className="detail__row">
+                  <dt>Salida</dt>
+                  <dd>Ventana nativa «GBA» (720×480)</dd>
+                </div>
+              )}
             </dl>
 
-            <button
-              type="button"
-              className="detail__play"
-              disabled={launching}
-              onClick={() => handleLaunch(selected)}
-            >
-              🎮 JUGAR
-            </button>
+            {isEmulating ? (
+              <button
+                type="button"
+                className="detail__play detail__play--active"
+                disabled={stopping}
+                onClick={handleStop}
+              >
+                {stopping ? "Deteniendo…" : "■ DETENER"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="detail__play"
+                disabled={launching || !selectedPlayable}
+                onClick={() => handleLaunch(selected)}
+                title={
+                  selectedPlayable
+                    ? "Inicializar core Libretro"
+                    : "Solo archivos .gba"
+                }
+              >
+                {launching ? "Abriendo ventana GBA…" : "🎮 JUGAR"}
+              </button>
+            )}
           </>
         ) : (
           <div className="detail__empty">
