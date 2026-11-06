@@ -1,116 +1,151 @@
 # wi-retro
 
-Gestor de emulación multiplataforma (Windows / Linux) — MVP GBA con backend Rust y frontend React.
+**Biblioteca y centro de emulación de videojuegos para escritorio.**
 
-## Estructura
+wi-retro busca combinar la experiencia de organización de bibliotecas de LaunchBox con la flexibilidad de emulación de RetroArch. El objetivo es ofrecer una aplicación de escritorio moderna para descubrir, organizar y ejecutar juegos que el usuario posee o está autorizado a utilizar.
 
-```
+> **Estado:** desarrollo temprano. La implementación actual está centrada en Game Boy Advance (GBA) mediante Libretro/mGBA. Las funciones descritas como futuras no deben interpretarse como ya disponibles.
+
+## Visión del producto
+
+- Biblioteca unificada de juegos, sistemas y colecciones.
+- Importación y escaneo de ROMs desde carpetas locales y unidades externas.
+- Identificación de juegos mediante metadatos, hashes y material gráfico.
+- Emulación híbrida: Libretro como primera opción y emuladores independientes mediante adaptadores.
+- Perfiles de controles, configuración por sistema y por juego.
+- Guardados, estados, capturas, progreso y estadísticas.
+- Interfaz personalizable, modo ventana y pantalla completa.
+- Integración con fuentes legales de metadatos y juegos de libre distribución.
+
+wi-retro no distribuirá ROMs comerciales ni facilitará fuentes no autorizadas. El usuario es responsable de contar con los derechos necesarios sobre los archivos que importe.
+
+## Estado actual
+
+| Área | Estado |
+|---|---|
+| Aplicación de escritorio | Base Tauri 2 + React |
+| Backend nativo | Rust |
+| Biblioteca GBA | Escaneo e indexación inicial |
+| Persistencia | SQLite/local implementada en el código actual |
+| Emulación Libretro | Integración inicial con core mGBA |
+| Ventana independiente GBA | Implementada |
+| Otros sistemas y cores | Pendiente |
+| Emuladores independientes | Arquitectura futura |
+| Metadatos y artwork | Pendiente |
+| Colecciones y perfiles avanzados | Pendiente |
+
+Consulta [ROADMAP.md](docs/ROADMAP.md) para conocer las fases previstas y sus criterios de finalización.
+
+## Stack tecnológico
+
+- **Desktop:** Tauri 2
+- **Frontend:** React 19, TypeScript, Vite
+- **Backend:** Rust
+- **Emulación:** Libretro mediante carga dinámica de cores
+- **Persistencia:** SQLite
+- **Estilos:** CSS
+- **Herramientas:** Node.js LTS, npm y Rust stable
+
+## Estructura del proyecto
+
+```text
 wi-retro/
-├── src/                      # Frontend React + TypeScript
-│   ├── lib/                  # Invocaciones Tauri
-│   ├── styles/               # CSS oscuro global
-│   ├── types/                # Tipos compartidos con backend
-│   ├── App.tsx
-│   └── main.tsx
-├── src-tauri/                # Backend Rust
-│   ├── capabilities/         # Permisos Tauri 2
-│   ├── icons/
-│   ├── src/
-│   │   ├── commands/         # Comandos expuestos al frontend
-│   │   ├── gba.rs            # Detección ROM GBA
-│   │   ├── libretro.rs       # Stub cores Libretro
-│   │   ├── models.rs
-│   │   ├── scanner.rs        # Indexación paralela (rayon + walkdir)
-│   │   ├── state.rs          # Estado en memoria
-│   │   ├── lib.rs
-│   │   └── main.rs
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── index.html
+├── .github/                 # Plantillas y automatización GitHub
+├── docs/                    # Producto, arquitectura, decisiones y roadmap
+├── scripts/                 # Scripts auxiliares
+├── src/                     # Interfaz React + TypeScript
+│   ├── components/
+│   ├── lib/
+│   ├── styles/
+│   └── types/
+├── src-tauri/               # Backend Rust y configuración Tauri
+│   ├── capabilities/
+│   ├── cores/               # Cores locales (no versionar binarios)
+│   └── src/
+│       ├── commands/
+│       └── libretro/
+├── CLAUDE.md                # Instrucciones para Claude Code
+├── PROMPT.md                # Plan maestro de implementación
 ├── package.json
-├── tsconfig.json
 └── vite.config.ts
 ```
 
-## Inicializar entorno (ejecutar en orden)
+## Requisitos
 
-### 1. Rust
+- Node.js LTS y npm.
+- Rust stable y Cargo.
+- Dependencias nativas de Tauri 2 para el sistema operativo.
+- Un core Libretro compatible para ejecutar juegos GBA.
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
-rustup default stable
-```
-
-### 2. Dependencias del sistema
-
-**Arch / CachyOS (Linux):**
+### Linux: Arch Linux / CachyOS
 
 ```bash
 sudo pacman -S --needed base-devel curl wget openssl pkg-config \
   webkit2gtk-4.1 gtk3 libappindicator-gtk3 librsvg
 ```
 
-**Debian / Ubuntu:**
+En otras distribuciones, instala los paquetes de desarrollo requeridos por Tauri 2 y WebKitGTK.
+
+### Windows
+
+Instala Microsoft C++ Build Tools y Microsoft Edge WebView2 Runtime, además de Node.js LTS y Rust stable.
+
+## Instalación y ejecución
 
 ```bash
-sudo apt update
-sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-  libssl-dev libayatana-appindicator3-dev librsvg2-dev
-```
-
-**Windows:**
-
-- [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (incluido en Windows 11)
-
-### 3. Node.js (LTS recomendado)
-
-```bash
-# Ejemplo con fnm
-curl -fsSL https://fnm.vercel.app/install | bash
-fnm install --lts
-fnm use lts-latest
-```
-
-### 4. Dependencias del proyecto
-
-```bash
-cd /home/wydex/Code/WiArch/wi-retro
+git clone https://github.com/wiarch/wi-retro.git
+cd wi-retro
 npm install
-```
-
-### 5. Desarrollo
-
-```bash
 npm run tauri dev
 ```
 
-### 6. Build release
+Para compilar:
 
 ```bash
+npm run build
 npm run tauri build
 ```
 
-## Comandos Tauri expuestos
+Para instalar el core mGBA en Linux, revisa primero las instrucciones y el origen del binario en [src-tauri/cores/README.md](src-tauri/cores/README.md). El script disponible es:
+
+```bash
+bash scripts/install-mgba-core.sh
+```
+
+No ejecutes scripts de descarga sin revisar su contenido y verificar que el binario provenga de una fuente confiable.
+
+## Comandos de desarrollo
 
 | Comando | Descripción |
-|---------|-------------|
-| `scan_library` | Escaneo paralelo de ROMs GBA |
-| `get_indexed_roms` | Devuelve índice en memoria |
-| `get_library_config` | Ruta raíz configurada |
-| `set_library_root` | Define carpeta de biblioteca |
+|---|---|
+| `npm run dev` | Inicia Vite |
+| `npm run build` | Comprueba TypeScript y genera el frontend |
+| `npm run preview` | Previsualiza el build web |
+| `npm run tauri dev` | Ejecuta la aplicación de escritorio |
+| `npm run tauri build` | Genera los instaladores |
+| `npm run tauri:dev` | Ejecución con ajustes de compatibilidad Linux |
+| `npm run install:core` | Ejecuta el instalador del core mGBA |
 
-## Rendimiento
+## Documentación para desarrollo asistido
 
-- Indexación en Rust con `walkdir` + `rayon` (paralelo por archivo).
-- Estado en memoria con `parking_lot::RwLock` (sin DB en MVP).
-- WebView nativo del SO vía Tauri 2 (bajo consumo RAM vs Electron).
-- Release profile: LTO + `opt-level = "s"`.
+- [CLAUDE.md](CLAUDE.md): reglas permanentes para Claude Code.
+- [PROMPT.md](PROMPT.md): plan maestro para continuar el producto.
+- [Producto y alcance](docs/PRODUCT.md).
+- [Arquitectura](docs/ARCHITECTURE.md).
+- [Roadmap](docs/ROADMAP.md).
+- [Decisiones técnicas](docs/DECISIONS.md).
+- [Contribución](CONTRIBUTING.md).
+- [Seguridad](SECURITY.md).
 
-## Próximos pasos
+## Principios del proyecto
 
-- Cargar cores Libretro dinámicamente (`libretro.rs`).
-- Lanzar emulación embebida o externa.
-- Persistencia SQLite del índice.
-- Metadatos (carátulas, títulos) vía header GBA.
+1. Preservar el código y las funciones existentes.
+2. Separar la interfaz, la lógica de biblioteca y los motores de emulación.
+3. Mantener Libretro como primera opción sin bloquear integraciones independientes.
+4. No ejecutar ROMs, cores ni emuladores sin validar rutas y entradas.
+5. Priorizar estabilidad, rendimiento, trazabilidad y experiencia de usuario.
+6. No declarar una función terminada hasta que esté implementada y probada.
+
+## Licencia
+
+No se ha establecido todavía una licencia de distribución para el proyecto. El código y los recursos permanecen sujetos a los derechos de sus respectivos titulares mientras se define una licencia explícita.
