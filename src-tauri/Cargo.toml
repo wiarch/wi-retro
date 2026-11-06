@@ -19,7 +19,7 @@ tauri-plugin-dialog = "2"
 
 # --- Libretro / FFI dinámico ---
 # Carga en runtime del core mGBA (.so / .dll) vía dlopen/LoadLibrary.
-libloading = "0.8"
+libloading = "0.9"
 
 # --- Estado compartido y concurrencia ---
 # Mutex/RwLock de bajo overhead para VideoFrameState, SessionManager y biblioteca.
