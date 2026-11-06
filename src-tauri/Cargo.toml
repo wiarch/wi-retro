@@ -24,7 +24,7 @@ libloading = "0.8"
 # --- Estado compartido y concurrencia ---
 # Mutex/RwLock de bajo overhead para VideoFrameState, SessionManager y biblioteca.
 # El bucle retro_run vive en std::thread (no bloquea el runtime async de Tauri).
-parking_lot = "0.12"
+parking_lot = "0.13"
 # Canal lock-free para entregar frames del hilo Libretro al pipeline de UI (fase siguiente).
 crossbeam-channel = "0.5"
 base64 = "0.22"
