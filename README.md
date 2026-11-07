@@ -149,3 +149,7 @@ No ejecutes scripts de descarga sin revisar su contenido y verificar que el bina
 ## Licencia
 
 No se ha establecido todavía una licencia de distribución para el proyecto. El código y los recursos permanecen sujetos a los derechos de sus respectivos titulares mientras se define una licencia explícita.
+
+---
+
+Parte del ecosistema **[WI Arch](https://github.com/wiarch)**.
